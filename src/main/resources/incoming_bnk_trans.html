@@ -15,7 +15,7 @@
 </head>
 <script type="text/javascript">
 $(document).ready(function() {
-    $('#example').DataTable( {
+     var table = $('#example').DataTable( {
         "ajax": "https://bnk-monitor.herokuapp.com/transgrab/s/incoming/address/NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM",
 		"bPaginate": false,
 		"bLengthChange": true,
@@ -30,35 +30,64 @@ $(document).ready(function() {
             { "data": "sender" },
             { "data": "recipient" },
             { "data": "amount" },
+			{ "data": "mosaics",
+						"render": function(data, type, row) {
+						    if(data == '') {
+								console.log('....');
+								return "";
+							}
+							var txt = '';
+							data.forEach(function(item) {
+								if (txt.length > 0) {
+								  txt += ', '
+								}
+								txt += item.name + ' ' + item.quantity;
+							});
+							return txt;
+						} 
+			},
             { "data": "date" },
  	        { "data": "message" },
-            { "data": "hash" }
-
+            { "data": "hash",
+					  "render": function(data,type,row) {
+						var txt = '';
+						txt += "<a href='http://alice2.nem.ninja:7890/transaction/get?hash="+data+"'>JSON</a>&nbsp|&nbsp";
+						txt += "<a href='http://chain.nem.ninja/#/transfer/"+data+"'>NEM Block Explorer</a>";
+						return txt;
+					  }
+			
+			}
         ]
     } );
+	table.on( 'draw', function () {
+		$.ajax({url: "https://bnk-monitor.herokuapp.com/transgrab/s/grab/incoming/total", success: function(result){
+			$("#totalinc").html("Amount Total for all Incoming Transactions: " + result);
+		}});
+	} );
 } );
 </script>
 
-<body>
-<h1>ALL BNK INCOMING TRANSACTION: NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM</h1>
-<div class="container-fluid" style="padding:10px;">
-<div class="row">
-<a class="btn btn-primary" style="margin:10px;" href="all_bnk_transaction.html" role="button">All Transactions for: NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM</a>
-</div>
-<div class="row">
-<a class="btn btn-primary" style="margin:10px;" href="incoming_bnk_trans.html" role="button">All Incoming Transactions for: NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM</a>
-</div>
-<div class="row">
-<a class="btn btn-primary" style="margin:10px;" href="outgoing_bnk_trans.html" role="button">All Outgoing Transactions for: NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM</a>
-</div>
-</div>
-</div>
-<table id="example" class="table table-striped table-bordered display nowrap" cellspacing="0" width="100%">
+<body style="padding:15px;">
+<h2>ALL BNK INCOMING TRANSACTION: NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM</h2>
+<nav class="navbar navbar-default">
+	<div class="container-fluid" style="padding:10px;">
+	<div class="navbar-header">
+			<a class="btn btn-primary" style="margin:10px;" href="all_bnk_transaction.html" role="button">All Transactions</a>
+			<a class="btn btn-primary" style="margin:10px;" href="incoming_bnk_trans.html" role="button">All Incoming Transactions</a>
+			<a class="btn btn-primary" style="margin:10px;" href="outgoing_bnk_trans.html" role="button">All Outgoing Transactions</a>
+		</div>
+	</div>
+	</div>
+</nav>
+<div id="totalinc"></div>
+<p style="font-size:11px;"><i>Note: Data is being loaded, decoded and parsed. Depending on the number of records, it may take sometime to load everything on this page</i></p>
+<table id="example" class="table table-striped table-bordered display nowrap" cellspacing="0" width="100%" style="font-size:11px;">
         <thead>
             <tr>
                 <th>Sender</th>
                 <th>Recipient</th>
                 <th>Amount</th>
+				<th>Mosaics</th>
                 <th>Date</th>
                 <th>Message</th>
 				<th>Hash</th>
@@ -69,6 +98,7 @@ $(document).ready(function() {
                 <th>Sender</th>
                 <th>Recipient</th>
                 <th>Amount</th>
+				<th>Mosaics</th>
                 <th>Date</th>
                 <th>Message</th>
 				<th>Hash</th>
