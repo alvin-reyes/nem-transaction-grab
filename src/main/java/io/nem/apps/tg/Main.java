@@ -2,7 +2,10 @@ package io.nem.apps.tg;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -35,18 +38,19 @@ public class Main {
 
 	private static File incomingFile = new File("incoming_trans.json");
 	private static File outgoingFile = new File("outgoing_trans.json");
-	private static String host = "alice2.nem.ninja";
-	private static String address = "NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM";
+	private static String host = "23.228.67.85";
+	private static String address = "TA66MVNSS55QQPS4GUUDNLZJJHLYTTEYS5CIFP26";
 
 	public Main() {
 		// initial transaction.
 
-		ConfigurationBuilder.nodeNetworkName("mainnet").nodeEndpoint(new NodeEndpoint("http", host, 7890)).setup();
+		//ConfigurationBuilder.nodeNetworkName("mainnet").nodeEndpoint(new NodeEndpoint("http", host, 7890)).setup();
+		ConfigurationBuilder.nodeNetworkName("testnet").nodeEndpoint(new NodeEndpoint("http", host, 7890)).setup();
 
 		try {
-			List<TransactionMetaDataPair> tm = TransactionApi.getAllTransactions(address);
+			//List<TransactionMetaDataPair> tm = TransactionApi.getAllTransactions(address);
 			net.sf.json.JSONObject json = net.sf.json.JSONObject.fromObject(NetworkUtils
-					.get("http://hachi.nem.ninja:7890/account/transfers/all?address=" + address).getResponse());
+					.get("http://"+host+":7890/account/transfers/all?address=" + address).getResponse());
 			net.sf.json.JSONArray jsonArrayMeta = json.getJSONArray("data");
 
 			@SuppressWarnings("unchecked")
@@ -67,7 +71,7 @@ public class Main {
 			flatIncoming.json2Sheet().write2csv("outgoing_trans.csv");
 			JFlat flatOutgoing = new JFlat(FileUtils.readFileToString(outgoingFile));
 			flatOutgoing.json2Sheet().write2csv("outgoing_trans.csv");
-		} catch (InterruptedException | ExecutionException | IOException e) {
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -93,7 +97,7 @@ public class Main {
 			JSONObject element = (JSONObject) itr.next();
 
 			//lastHashr = element.getJSONObject("meta").getJSONObject("hash").getString("data");
-			parse("NC5SP7IH6C444GXOQT6VYXKCKD53GSVA3LSSAQQM", element.toString());
+			parse(address, element.toString());
 		}
 		if (!lastHashr.equals("")) {
 			recurse(lastHashr);
@@ -116,7 +120,10 @@ public class Main {
 		JSONObject outJSON = new JSONObject();
 		if (transaction.containsKey("signatures")) { // multisig transaction
 			JSONObject otherTrans = transaction.getJSONObject("otherTrans");
-			String recipient = otherTrans.getString("recipient");
+			String recipient = "";
+			if(otherTrans.containsKey("recipient")) {
+				recipient = otherTrans.getString("recipient");
+			}
 			outJSON.put("sender", KeyConvertor.getAddressFromPublicKey(otherTrans.getString("signer")));
 			outJSON.put("recipient", recipient);
 
@@ -176,10 +183,17 @@ public class Main {
 			System.out.println(outJSON.toString());
 
 		} else { // normal transaction
-			String recipient = transaction.getString("recipient");
 			outJSON.put("sender", KeyConvertor.getAddressFromPublicKey(transaction.getString("signer")));
+			String recipient = "";
+			if(transaction.containsKey("recipient")) {
+				recipient = transaction.getString("recipient");
+			}
 			outJSON.put("recipient", recipient);
-			outJSON.put("amount", Amount.fromMicroNem(transaction.getLong("amount")).getNumNem());
+			long amount = 0l;
+			if(transaction.containsKey("amount")) {
+				amount = Amount.fromMicroNem(transaction.getLong("amount")).getNumNem();
+			}
+			outJSON.put("amount",amount);
 			outJSON.put("date",
 					dateFormat.format(new Date((transaction.getLong("timeStamp") + Constants.NEMSISTIME) * 1000)));
 			// outJSON.put("hash", hash);
@@ -238,7 +252,12 @@ public class Main {
 
 	
 	public static void main(String[] args) {
-		new Main();
+		BigDecimal d = new BigDecimal(100000 / 1000000);
+	    DecimalFormat formatter = new DecimalFormat("##########.##########");
+	    System.out.println(d);
+	    System.out.println(Amount.fromMicroNem(1000000).getNumMicroNem() / Math.pow(10, 6));
+	    System.out.println(formatter.format(100000/1000000));
+		//new Main();
 	}
 	
 

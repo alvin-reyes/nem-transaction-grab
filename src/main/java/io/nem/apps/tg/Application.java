@@ -18,10 +18,16 @@ import io.nem.apps.builders.ConfigurationBuilder;
 @ComponentScan(basePackages = "io.nem.apps.tg")
 public class Application {
 	private static String host = "alice2.nem.ninja";
+	private static String port = "8081";
+	private static String network = "mainnet"; // default
 	public static void main(String[] args) {
 
-		ConfigurationBuilder.nodeNetworkName("mainnet").nodeEndpoint(new NodeEndpoint("http", host, 7890)).setup();
+		if(args.length > 0) {
+			Application.port = args[0];
+			Application.network = args[1];
+		}
 
+		ConfigurationBuilder.nodeNetworkName(Application.network).nodeEndpoint(new NodeEndpoint("http", host, 7890)).setup();
 		SpringApplication.run(Application.class, args);
 	}
 
@@ -29,7 +35,7 @@ public class Application {
 	public EmbeddedServletContainerCustomizer containerCustomizer() {
 		return (container -> {
 			container.setContextPath("/transgrab");
-			container.setPort(Integer.valueOf(System.getenv("PORT")));
+			container.setPort(Integer.valueOf(Application.port));
 		});
 	}
 
