@@ -7,9 +7,10 @@ public class Transaction implements Cloneable {
 
 	private String sender = "";
 	private String recipient = "";
-	private double amount = 0l;
-	private double fee = 0l;
-	private double amountTotal = 0l;
+	private Double amount = new Double(0d);
+	private Double fee =  new Double(0d);
+	private Double amountTotal =  new Double(0d);
+	private Double divisibility = new Double(6d);
 	private String currencyType;
 	private String date = "";
 	private String message = "";
@@ -22,16 +23,24 @@ public class Transaction implements Cloneable {
 		this.currencyType = currencyType;
 	}
 
+	public Double getDivisibility() {
+		return divisibility;
+	}
+
+	public void setDivisibility(Double divisibility) {
+		this.divisibility = divisibility;
+	}
+
 	private LinkedList<Mosaic> mosaics = new LinkedList<Mosaic>();
 	private String hash = "";
 	private String isMultisig = "";
 	private TransactionType transactionType;
 
-	public double getAmountTotal() {
+	public Double getAmountTotal() {
 		return amountTotal;
 	}
 
-	public void setAmountTotal(double amountTotal) {
+	public void setAmountTotal(Double amountTotal) {
 		this.amountTotal = amountTotal;
 	}
 
@@ -59,11 +68,11 @@ public class Transaction implements Cloneable {
 		this.recipient = recipient;
 	}
 
-	public double getAmount() {
+	public Double getAmount() {
 		return amount;
 	}
 
-	public void setAmount(double amount) {
+	public void setAmount(Double amount) {
 		this.amount = amount;
 	}
 
@@ -107,11 +116,11 @@ public class Transaction implements Cloneable {
 		this.isMultisig = isMultisig;
 	}
 
-	public double getFee() {
+	public Double getFee() {
 		return fee;
 	}
 
-	public void setFee(double fee) {
+	public void setFee(Double fee) {
 		this.fee = fee;
 	}
 

@@ -52,6 +52,7 @@ public class TransactionService {
 			parse(host, port, address, element.toString(), allTransaction);
 		}
 		recurse(host, port, address, lastHash, allTransaction);
+
 		String completeData = JsonUtils.toJson(new TransactionResponse(allTransaction));
 		return ResponseEntity.accepted().contentType(MediaType.APPLICATION_JSON).body(completeData);
 	}
@@ -59,8 +60,7 @@ public class TransactionService {
 	public ResponseEntity<String> grabLatestWithLimit(String network, String host, String port, String address,
 			String rec) {
 		int count = Integer.valueOf(rec);
-		ConfigurationBuilder.nodeNetworkName(network)
-				.nodeEndpoint(new NodeEndpoint("http", host, Integer.valueOf(port))).setup();
+
 		LinkedList<Transaction> allTransaction = new LinkedList<Transaction>();
 		System.out.println("http://" + host + ":" + port + "/account/transfers/all?address=" + address);
 		net.sf.json.JSONObject json = net.sf.json.JSONObject.fromObject(NetworkUtils
@@ -88,8 +88,7 @@ public class TransactionService {
 
 	public ResponseEntity<String> grabLatestWithHash(String network, String host, String port, String address,
 			String hash) {
-		ConfigurationBuilder.nodeNetworkName(network)
-				.nodeEndpoint(new NodeEndpoint("http", host, Integer.valueOf(port))).setup();
+
 		LinkedList<Transaction> allTransaction = new LinkedList<Transaction>();
 		System.out
 				.println("http://" + host + ":" + port + "/account/transfers/all?address=" + address + "&hash=" + hash);
@@ -113,8 +112,7 @@ public class TransactionService {
 	}
 
 	public ResponseEntity<String> grabIncomingOnlyWithHost(String network, String host, String port, String address) {
-		ConfigurationBuilder.nodeNetworkName(network)
-				.nodeEndpoint(new NodeEndpoint("http", host, Integer.valueOf(port))).setup();
+
 		LinkedList<Transaction> allTransaction = new LinkedList<Transaction>();
 		net.sf.json.JSONObject json = net.sf.json.JSONObject.fromObject(NetworkUtils
 				.get("http://" + host + ":" + port + "/account/transfers/all?address=" + address).getResponse());
@@ -142,8 +140,7 @@ public class TransactionService {
 
 	public ResponseEntity<String> grabIncomingOnlyWithHostWithLimit(String network, String host, String port,
 			String address, String rec) {
-		ConfigurationBuilder.nodeNetworkName(network)
-				.nodeEndpoint(new NodeEndpoint("http", host, Integer.valueOf(port))).setup();
+
 		LinkedList<Transaction> allTransaction = new LinkedList<Transaction>();
 		net.sf.json.JSONObject json = net.sf.json.JSONObject.fromObject(NetworkUtils
 				.get("http://" + host + ":" + port + "/account/transfers/all?address=" + address).getResponse());
@@ -170,8 +167,7 @@ public class TransactionService {
 	}
 
 	public ResponseEntity<String> grabOutgoingOnlyWithHost(String network, String host, String port, String address) {
-		ConfigurationBuilder.nodeNetworkName(network)
-				.nodeEndpoint(new NodeEndpoint("http", host, Integer.valueOf(port))).setup();
+	
 		LinkedList<Transaction> allTransaction = new LinkedList<Transaction>();
 		net.sf.json.JSONObject json = net.sf.json.JSONObject.fromObject(NetworkUtils
 				.get("http://" + host + ":" + port + "/account/transfers/all?address=" + address).getResponse());
@@ -194,30 +190,6 @@ public class TransactionService {
 						.collect(Collectors.toList())));
 		return ResponseEntity.accepted().contentType(MediaType.APPLICATION_JSON).body(completeData);
 
-	}
-
-	private String transactionGrab(String host, String port, String address, String hash) {
-		LinkedList<Transaction> allTransaction = new LinkedList<Transaction>();
-		String endpointUrl = "";
-		if (hash == null) {
-			endpointUrl = "http://" + host + ":" + port + "/account/transfers/all?address=" + address;
-		} else {
-			endpointUrl = "http://" + host + ":" + port + "/account/transfers/all?address=" + address + "&hash=" + hash;
-		}
-		net.sf.json.JSONObject json = net.sf.json.JSONObject.fromObject(NetworkUtils.get(endpointUrl).getResponse());
-
-		Iterator<JSONObject> itr = json.getJSONArray("data").iterator();
-		String lastHash = "";
-		if (json.getJSONArray("data").size() > 0) {
-			lastHash = json.getJSONArray("data").getJSONObject(json.getJSONArray("data").size() - 1)
-					.getJSONObject("meta").getJSONObject("hash").getString("data");
-		}
-		String jsonData = "";
-		while (itr.hasNext()) {
-			JSONObject element = itr.next();
-			jsonData += parse(host, port, address, element.toString(), allTransaction);
-		}
-		return jsonData += recurse(host, port, address, lastHash, allTransaction);
 	}
 
 	private String recurse(String host, String port, String address, String lastHash,
@@ -262,6 +234,7 @@ public class TransactionService {
 		JSONObject transaction = json.getJSONObject("transaction");
 		if (transaction.containsKey("signatures")) { // multisig transaction
 			boolean hasMosaic = false;
+			JSONArray signatures = transaction.getJSONArray("signatures");
 			JSONObject otherTrans = transaction.getJSONObject("otherTrans");
 			String recipient = "";
 			if (otherTrans.containsKey("recipient")) {
@@ -270,24 +243,44 @@ public class TransactionService {
 
 			String sender = KeyConvertor.getAddressFromPublicKey(otherTrans.getString("signer"));
 
-
 			double amount = 0l;
+			double amountMicroNem = 0l;
 			if (otherTrans.containsKey("amount")) {
-				amount = Amount.fromMicroNem(otherTrans.getLong("amount")).getNumNem();
+				amountMicroNem = Amount.fromMicroNem(otherTrans.getLong("amount")).getNumMicroNem();
+				amount = Amount.fromMicroNem(otherTrans.getLong("amount")).getNumMicroNem() / Math.pow(10, 6);
 			}
 
 			transactionModel.setRecipient(recipient);
 			transactionModel.setSender(KeyConvertor.getAddressFromPublicKey(otherTrans.getString("signer")));
-			transactionModel.setAmount(amount);
+
 			transactionModel.setDate(
 					dateFormat.format(new Date((otherTrans.getLong("timeStamp") + Constants.NEMSISTIME) * 1000)));
 
 			double fee = 0l;
+			double feeMicroNem = 0l;
+			double transFee = 0l;
+			double transFeeMicroNem = 0l;
 			if (otherTrans.containsKey("fee")) {
-				fee = Amount.fromMicroNem(otherTrans.getLong("fee")).getNumMicroNem() /  Math.pow(10, 6);
+				feeMicroNem = Amount.fromMicroNem(otherTrans.getLong("fee")).getNumMicroNem();
+				fee = Amount.fromMicroNem(otherTrans.getLong("fee")).getNumMicroNem() / Math.pow(10, 6);
+
+				// check Transaction Fee and add to the fee.
+				if (transaction.containsKey("fee")) {
+					transFeeMicroNem = Amount.fromMicroNem(transaction.getLong("fee")).getNumMicroNem();
+					transFee = Amount.fromMicroNem(transaction.getLong("fee")).getNumMicroNem() / Math.pow(10, 6);
+				}
 			}
-			transactionModel.setFee(fee);
-			
+
+			// loop thru signatures
+			Iterator<JSONObject> signaturesIter = signatures.iterator();
+
+			double signatureFees = 0l;
+			while (signaturesIter.hasNext()) {
+
+				JSONObject signatureObject = (JSONObject) signaturesIter.next();
+				// get the fee.
+				signatureFees += Amount.fromMicroNem(signatureObject.getLong("fee")).getNumMicroNem();
+			}
 
 			// outJSON.put("hash", hash);
 			// message
@@ -296,19 +289,31 @@ public class TransactionService {
 				// if message type is 1, convert to String
 				if (message.getInt("type") == 1 && HexStringUtils.hex2String(message.getString("payload")) != null) {
 					transactionModel.setMessage(HexStringUtils.hex2String(message.getString("payload")));
-				} 
+				}
 			}
 			transactionModel.setCurrencyType("nem:xem");
 			transactionModel.setHash(hash);
 			transactionModel.setIsMultisig("1");
 
+			double totalFee = (feeMicroNem + transFeeMicroNem + signatureFees);
+			double amountAfterFees = amountMicroNem + totalFee;
 			if (address.equals(recipient)) {
 				transactionModel.setTransactionType(TransactionType.INCOMING);
-				transactionModel.setAmountTotal(amount);
+				transactionModel.setAmount(amountMicroNem);
+				transactionModel.setAmountTotal(amountMicroNem);
 			}
 			if (address.equals(sender)) {
+				transactionModel.setFee(totalFee);
 				transactionModel.setTransactionType(TransactionType.OUTGOING);
-				transactionModel.setAmountTotal(amount - fee);
+				transactionModel.setAmount(amountAfterFees);
+				if (amountAfterFees != 0.0) {
+					if (amountAfterFees < totalFee) {
+						transactionModel.setAmountTotal(((totalFee - amountAfterFees)));
+					} else {
+						transactionModel.setAmountTotal(((amountAfterFees - totalFee)));
+					}
+				}
+
 			}
 			// mosaic
 			if (otherTrans.containsKey("mosaics")) {
@@ -326,22 +331,23 @@ public class TransactionService {
 					Mosaic mosaicModel = new Mosaic();
 					JSONObject outMosaic = new JSONObject();
 					JSONObject mosaic = mosaics.getJSONObject(i);
-					long quantity = mosaic.getLong("quantity");
+					double quantity = mosaic.getDouble("quantity");
 					String namespace = mosaic.getJSONObject("mosaicId").getString("namespaceId");
 					String mosaicName = mosaic.getJSONObject("mosaicId").getString("name");
 					MosaicId mosaicId = new MosaicId(new NamespaceId(namespace), mosaicName);
-					
+
 					MosaicFeeInformation m = NISQuery.findMosaicFeeInformationByNIS(host, port, mosaicId);
 					int divisibility = 6;
-					if(m != null) {
+					if (m != null) {
 						divisibility = m.getDivisibility();
 					}
-					
+
 					outMosaic.put("name", mosaicId.toString());
 					outMosaic.put("quantity", quantity / Math.pow(10, divisibility));
 					mosaicModel.setName(mosaicId.toString());
-					mosaicModel.setQuantity(quantity / Math.pow(10, divisibility));
-					transactionModelMosaic.setAmount(quantity / Math.pow(10, divisibility));
+					mosaicModel.setQuantity(quantity);
+					mosaicModel.setDivisibility(divisibility);
+					transactionModelMosaic.setAmount(quantity);
 					transactionModelMosaic.setCurrencyType(mosaicId.toString());
 					transactionModel.addMosaic(mosaicModel);
 					outMosaicArray.add(outMosaic);
@@ -365,23 +371,27 @@ public class TransactionService {
 			if (transaction.containsKey("recipient")) {
 				recipient = transaction.getString("recipient");
 			}
+
 			String sender = KeyConvertor.getAddressFromPublicKey(transaction.getString("signer"));
 			double amount = 0l;
+			double amountMicroNem = 0l;
 			if (transaction.containsKey("amount")) {
-				amount = Amount.fromMicroNem(transaction.getLong("amount")).getNumNem();
+				amountMicroNem = Amount.fromMicroNem(transaction.getLong("amount")).getNumMicroNem();
+				amount = Amount.fromMicroNem(transaction.getLong("amount")).getNumMicroNem() / Math.pow(10, 6);
 			}
 			double fee = 0l;
+			double feeMicroNem = 0l;
 			if (transaction.containsKey("fee")) {
-				fee = Amount.fromMicroNem(transaction.getLong("fee")).getNumMicroNem() /  Math.pow(10, 6);
+				feeMicroNem = Amount.fromMicroNem(transaction.getLong("fee")).getNumMicroNem();
+				fee = Amount.fromMicroNem(transaction.getLong("fee")).getNumMicroNem() / Math.pow(10, 6);
 			}
 
-			transactionModel.setFee(fee);
 			transactionModel.setRecipient(recipient);
 			transactionModel.setSender(KeyConvertor.getAddressFromPublicKey(transaction.getString("signer")));
-			transactionModel.setAmount(amount);
+
 			transactionModel.setDate(
 					dateFormat.format(new Date((transaction.getLong("timeStamp") + Constants.NEMSISTIME) * 1000)));
-			
+
 			// outJSON.put("hash", hash);
 			// message
 			if (transaction.containsKey("message") && transaction.getJSONObject("message").containsKey("type")) {
@@ -394,14 +404,28 @@ public class TransactionService {
 			transactionModel.setCurrencyType("nem:xem");
 			transactionModel.setHash(hash);
 			transactionModel.setIsMultisig("0");
-
+			
+			double amountAfterFees = amountMicroNem + feeMicroNem;
+			
 			if (address.equals(recipient)) {
 				transactionModel.setTransactionType(TransactionType.INCOMING);
-				transactionModel.setAmountTotal(amount);
+				transactionModel.setAmount(((amountMicroNem)));
+				transactionModel.setAmountTotal(amountMicroNem);
 			}
 			if (address.equals(sender)) {
+				transactionModel.setFee(feeMicroNem);
 				transactionModel.setTransactionType(TransactionType.OUTGOING);
-				transactionModel.setAmountTotal(amount - fee);
+				transactionModel.setAmount(amountAfterFees);
+
+				if (amountAfterFees != 0.0) {
+					if (amountAfterFees < feeMicroNem) {
+						transactionModel.setAmountTotal(((feeMicroNem - amountAfterFees)));
+					} else {
+						transactionModel.setAmountTotal(((amountAfterFees - feeMicroNem)));
+					}
+				}
+				
+				
 			}
 			// mosaic
 			if (transaction.containsKey("mosaics")) {
@@ -419,20 +443,21 @@ public class TransactionService {
 					Mosaic mosaicModel = new Mosaic();
 					JSONObject outMosaic = new JSONObject();
 					JSONObject mosaic = mosaics.getJSONObject(i);
-					long quantity = mosaic.getLong("quantity");
+					double quantity = mosaic.getDouble("quantity");
 					String namespace = mosaic.getJSONObject("mosaicId").getString("namespaceId");
 					String mosaicName = mosaic.getJSONObject("mosaicId").getString("name");
 					MosaicId mosaicId = new MosaicId(new NamespaceId(namespace), mosaicName);
 					MosaicFeeInformation m = NISQuery.findMosaicFeeInformationByNIS(host, port, mosaicId);
 					int divisibility = 6;
-					if(m != null) {
+					if (m != null) {
 						divisibility = m.getDivisibility();
 					}
 					outMosaic.put("name", mosaicId.toString());
 					outMosaic.put("quantity", quantity / Math.pow(10, divisibility));
 					mosaicModel.setName(mosaicId.toString());
-					mosaicModel.setQuantity(quantity /Math.pow(10, divisibility));
-					transactionModelMosaic.setAmount(quantity / Math.pow(10, divisibility));
+					mosaicModel.setQuantity(quantity);
+					mosaicModel.setDivisibility(divisibility);
+					transactionModelMosaic.setAmount(quantity);
 					transactionModelMosaic.setCurrencyType(mosaicId.toString());
 					transactionModel.addMosaic(mosaicModel);
 					outMosaicArray.add(outMosaic);

@@ -4,6 +4,7 @@ public class Mosaic {
 
 	private String name;
 	private double quantity;
+	private double divisibility;
 	public String getName() {
 		return name;
 	}
@@ -15,6 +16,12 @@ public class Mosaic {
 	}
 	public void setQuantity(double quantity) {
 		this.quantity = quantity;
+	}
+	public double getDivisibility() {
+		return divisibility;
+	}
+	public void setDivisibility(double divisibility) {
+		this.divisibility = divisibility;
 	}
 	
 	
