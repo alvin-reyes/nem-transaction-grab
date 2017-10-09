@@ -64,7 +64,7 @@ public class TransactionController {
 	public ResponseEntity<String> grabOutgoingOnlyWithHost(@PathVariable String network, @PathVariable String host,
 			@PathVariable String port, @PathVariable String address) {
 
-		return this.grabOutgoingOnlyWithHost(network, host, port, address);
+		return this.transactionService.grabOutgoingOnlyWithHost(network, host, port, address);
 
 	}
 }

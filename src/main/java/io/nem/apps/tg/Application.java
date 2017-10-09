@@ -17,9 +17,9 @@ import io.nem.apps.builders.ConfigurationBuilder;
 @SpringBootApplication
 @ComponentScan(basePackages = "io.nem.apps.tg")
 public class Application {
-	private static String host = "alice2.nem.ninja";
+	private static String host = "a1.dfintech.com";
 	private static String port = "8081";
-	private static String network = "mainnet"; // default
+	private static String network = "mijinnet"; // default
 	public static void main(String[] args) {
 
 		if(args.length > 0) {
@@ -27,7 +27,7 @@ public class Application {
 			Application.network = args[1];
 		}
 
-		ConfigurationBuilder.nodeNetworkName(Application.network).nodeEndpoint(new NodeEndpoint("http", host, 7890)).setup();
+		ConfigurationBuilder.nodeNetworkName(Application.network).nodeEndpoint(new NodeEndpoint("http", host, 7895)).setup();
 		SpringApplication.run(Application.class, args);
 	}
 

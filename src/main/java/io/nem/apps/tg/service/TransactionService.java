@@ -28,6 +28,7 @@ import io.nem.apps.util.HexStringUtils;
 import io.nem.apps.util.JsonUtils;
 import io.nem.apps.util.NetworkUtils;
 import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
 @Service
@@ -167,7 +168,7 @@ public class TransactionService {
 	}
 
 	public ResponseEntity<String> grabOutgoingOnlyWithHost(String network, String host, String port, String address) {
-	
+
 		LinkedList<Transaction> allTransaction = new LinkedList<Transaction>();
 		net.sf.json.JSONObject json = net.sf.json.JSONObject.fromObject(NetworkUtils
 				.get("http://" + host + ":" + port + "/account/transfers/all?address=" + address).getResponse());
@@ -199,21 +200,25 @@ public class TransactionService {
 				.get("http://" + host + ":" + port + "/account/transfers/all?address=" + address + "&hash=" + lastHash)
 				.getResponse());
 
-		net.sf.json.JSONArray jsonArrayMeta = json.getJSONArray("data");
+		try {
+			net.sf.json.JSONArray jsonArrayMeta = json.getJSONArray("data");
 
-		@SuppressWarnings("unchecked")
-		Iterator<JSONObject> itr = jsonArrayMeta.iterator();
-		String lastHashr = "";
-		if (json.getJSONArray("data").size() > 0) {
-			lastHashr = json.getJSONArray("data").getJSONObject(json.getJSONArray("data").size() - 1)
-					.getJSONObject("meta").getJSONObject("hash").getString("data");
-		}
-		while (itr.hasNext()) {
-			JSONObject element = itr.next();
-			str += parse(host, port, address, element.toString(), allTransaction);
-		}
-		if (!lastHashr.equals("")) {
-			str += recurse(host, port, address, lastHashr, allTransaction);
+			@SuppressWarnings("unchecked")
+			Iterator<JSONObject> itr = jsonArrayMeta.iterator();
+			String lastHashr = "";
+			if (json.getJSONArray("data").size() > 0) {
+				lastHashr = json.getJSONArray("data").getJSONObject(json.getJSONArray("data").size() - 1)
+						.getJSONObject("meta").getJSONObject("hash").getString("data");
+			}
+			while (itr.hasNext()) {
+				JSONObject element = itr.next();
+				str += parse(host, port, address, element.toString(), allTransaction);
+			}
+			if (!lastHashr.equals("")) {
+				str += recurse(host, port, address, lastHashr, allTransaction);
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
 		}
 		return str;
 	}
@@ -404,9 +409,9 @@ public class TransactionService {
 			transactionModel.setCurrencyType("nem:xem");
 			transactionModel.setHash(hash);
 			transactionModel.setIsMultisig("0");
-			
+
 			double amountAfterFees = amountMicroNem + feeMicroNem;
-			
+
 			if (address.equals(recipient)) {
 				transactionModel.setTransactionType(TransactionType.INCOMING);
 				transactionModel.setAmount(((amountMicroNem)));
@@ -424,8 +429,7 @@ public class TransactionService {
 						transactionModel.setAmountTotal(((amountAfterFees - feeMicroNem)));
 					}
 				}
-				
-				
+
 			}
 			// mosaic
 			if (transaction.containsKey("mosaics")) {
